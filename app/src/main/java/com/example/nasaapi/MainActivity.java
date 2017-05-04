@@ -11,12 +11,14 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Handler;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -28,7 +30,6 @@ public class MainActivity extends AppCompatActivity {
     public NasaAdapter nasaAdapter;
     public String date;
     public DateTime thenDate;
-    public int counter = 0;
     private EndlessScrollListener endlessScrollListener;
 
     @Override
@@ -53,37 +54,47 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.addOnScrollListener(endlessScrollListener);
     }
 
-    public void getData(int count) {
-        counter = 0;
+    public void getData(final int count) {
         final List<NasaData> nasaDataList = new ArrayList<>();
 
-        for (int i = count; i < count + 10; i++) {
-            thenDate = new DateTime().minusDays(i);
-            DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd");
-            date = fmt.print(thenDate);
+        final android.os.Handler handler = new android.os.Handler();
 
-            Call<NasaData> call = AppSingleton.getInstance().getNasaApi().getApod(date);
+        new Thread(new Runnable() {
+            public int counter = 0;
 
-            call.enqueue(new Callback<NasaData>() {
-                @Override
-                public void onResponse(Call<NasaData> dataObjects, Response<NasaData> response) {
-                    counter++;
-                    nasaDataList.add(response.body());
-                    if (counter == 10) {
-                        nasaAdapter.setDataList(nasaDataList);
-                        endlessScrollListener.setLoading(false);
+            @Override
+            public void run() {
+
+                for (int i = count; i < count + 10; i++) {
+                    thenDate = new DateTime().minusDays(i);
+                    DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd");
+                    date = fmt.print(thenDate);
+
+                    Call<NasaData> call = AppSingleton.getInstance().getNasaApi().getApod(date);
+
+                    try {
+                        nasaDataList.add(call.execute().body());
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                }
-                @Override
-                public void onFailure(Call<NasaData> data, Throwable t) {
                     counter++;
                     if (counter == 10) {
-                        nasaAdapter.setDataList(nasaDataList);
-                        endlessScrollListener.setLoading(false);
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                nasaAdapter.setDataList(nasaDataList);
+                                endlessScrollListener.setLoading(false);
+                            }
+                        });
+
                     }
+
+//
                 }
-            });
-        }
+            }
+        }).start();
+
+
     }
 
-} 
+}
