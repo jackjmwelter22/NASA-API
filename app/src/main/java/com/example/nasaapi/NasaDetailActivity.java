@@ -10,6 +10,9 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+
 import java.text.SimpleDateFormat;
 
 import retrofit2.Call;
@@ -38,7 +41,8 @@ public class NasaDetailActivity extends AppCompatActivity {
 
         Picasso.with(detailContext).load(nasaData.getUrl()).into(picImageView2);
         titleTextView2.setText(nasaData.getTitle());
-        dateTextView.setText(nasaData.getDate().toString());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        dateTextView.setText(sdf.format(nasaData.getDate()));
         explanationTextView.setText(nasaData.getExplanation());
 
     }
